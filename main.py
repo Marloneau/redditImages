@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 import numpy as np
 
-
+#Reading config/credentials
 with open("config.json","r") as f:
     config=json.load(f)
 
@@ -28,35 +28,46 @@ TOKEN = res.json()["access_token"]
 
 headers = {**headers, **{"Authorization": f"bearer {TOKEN}"}} 
 
-#requests.get("https://oauth.reddit.com/api/avi/me",headers=headers)
 
-res = requests.get("https://oauth.reddit.com/r/shitposting/hot",headers=headers,params={"limit":"100"})
-print(res.json()["data"]["children"][0]["data"].keys())
+"""res = requests.get("https://oauth.reddit.com/r/shitposting/hot",headers=headers,params={"limit":"100"})
+print(res.json()["data"]["children"][0]["data"].keys())"""
 
 data = pd.DataFrame()
 params={"limit":100}
 
-for i in range(2):
+pattern_del="(.gif|.png|.jpg)" #Mmaking sure I want those images
+
+subr=["shitposting","ProgrammerHumor"] #List of subreddits I want images from 
+
+for subreddit in subr:
     
-    res = requests.get("https://oauth.reddit.com/r/shitposting/hot",headers=headers,params=params)
+    params={"limit":100}
     
-    df=pd.DataFrame()
+    for i in range(2):
+        
+        res = requests.get("https://oauth.reddit.com/r/" + subreddit + "/hot",headers=headers,params=params)
+        
+        df=pd.DataFrame()
 
-    for post in res.json()["data"]["children"]:
-        df = df.append({
-            "title":post["data"]["title"],
-            "url":post["data"]["url"],
-            "id":post["data"]["id"],
-            "kind":post["kind"],
-        },ignore_index=True)
-    
-    last_row = df.iloc[len(df)-1]
+        for post in res.json()["data"]["children"]:
+            df = df.append({
+                "title":post["data"]["title"],
+                "url":post["data"]["url"],
+                "id":post["data"]["id"],
+                "kind":post["kind"],
+            },ignore_index=True)
+        
+        last_row = df.iloc[ len(df)-1]
 
-    fullname = last_row["kind"] + "_" + last_row["id"]
+        fullname = last_row["kind"] + "_" + last_row["id"]
 
-    params["after"] = fullname
+        params["after"] = fullname
 
-    data = data.append(df, ignore_index=True)
+        filter = df["url"].str.contains(pattern_del)
+
+        df=df[filter]
+
+        data = data.append(df, ignore_index=True)
 
 print(data)
 
